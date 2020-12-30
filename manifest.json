@@ -1,0 +1,14 @@
+{
+  "domain": "iec_meter",
+  "name": "IEC Power Meter",
+  "config_flow": false,
+  "documentation": "https://www.home-assistant.io/integrations/iec_meter",
+  "requirements": [],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": [
+    "@Ko1dun"
+  ]
+}
