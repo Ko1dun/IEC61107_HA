@@ -8,7 +8,7 @@ from homeassistant import config_entries, core, exceptions
 
 from .const import DOMAIN, CONF_TRANSPORT, CONF_HOSTNAME, CONF_PORT, CONF_SOFTPARITY
 from .const import CONF_BAUDRATE, CONF_DEVICE, CONF_PARITY, CONF_FLOWCTRL # pylint:disable=unused-import 
-from .const import CONF_ID, CONF_PASSWORD
+from .const import CONF_NAME
 _LOGGER = logging.getLogger(__name__)
 
 # TODO adjust the data schema to the data that you need
@@ -91,6 +91,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         data_schema  = {
+            vol.Required(CONF_NAME): str,
             vol.Required(CONF_TRANSPORT): vol.In(["TCP","UDP","Serial"]),
         }
         errors = {}
@@ -108,35 +109,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
                 step_id="user", data_schema=vol.Schema(data_schema),errors = errors
             )
-    
-    async def async_step_id(self, user_input=None):
-        data_schema  = {
-            vol.Optional(CONF_ID) : str,
-            vol.Optional(CONF_PASSWORD): str
-        }
-            
-        errors = {}
-            
-        if user_input is not None:
-            try:
-                info = await validate_passwd(self.data, user_input[CONF_PASSWORD] )
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            
-            
-            if not errors:
-                _LOGGER.info("Pwd accepted")
-                self.data.update(user_input)
-                _LOGGER.info(self.data)
-                return self.async_create_entry(title="IEC meter", data=self.data)
-       
-        return self.async_show_form(
-            step_id="id", data_schema=vol.Schema(data_schema), errors=errors
-        )
-    
+        
     async def async_step_serial_trans(self, user_input=None):
         data_schema  = {
             vol.Required(CONF_DEVICE, description={"suggested_value": "/dev/ttyUSB0"}): str,
@@ -162,7 +135,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.info("Serial accepted")
                 self.data.update(user_input)
                 _LOGGER.info(self.data)
-                return await self.async_step_id()
+                return self.async_create_entry(title = self.data[CONF_NAME], data=self.data)
         return self.async_show_form(
             step_id="serial_trans", data_schema=vol.Schema(data_schema), errors=errors
         )
@@ -190,7 +163,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.info("Net accepted")
                 self.data.update(user_input)
                 _LOGGER.info(self.data)
-                return await self.async_step_id()
+                return self.async_create_entry(title = self.data[CONF_NAME], data=self.data)
                 
         return self.async_show_form(
             step_id="net_trans", data_schema=vol.Schema(data_schema), errors=errors

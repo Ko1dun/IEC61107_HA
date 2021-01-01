@@ -12,6 +12,7 @@
     "step": {
       "user": {
         "data": {
+          "name": "Hub name",
           "transport": "Transport"
         },
         "description": "Select IEC transport",
