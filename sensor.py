@@ -54,9 +54,7 @@ async def async_setup_platform(
     discovery_info: Optional[DiscoveryInfoType] = None,
 ) -> None:
     """Set up the sensor platform."""
-    _LOGGER.warning("IEC sensor setup")
-    _LOGGER.warning(config)
-    
+     
     sensors = []
 
     for parameter in config[CONF_PARAMETERS]:
@@ -66,11 +64,6 @@ async def async_setup_platform(
         except KeyError:
             _LOGGER.error("Hub " + hub_name + " not found")
             continue
-        
-        _LOGGER.warning("param")
-        _LOGGER.warning(parameter)
-        _LOGGER.warning(hub.name)
-
 
         #add parameter to hub request list
         added = hub.add_named(id = parameter.get(CONF_ID),
@@ -92,14 +85,6 @@ async def async_setup_platform(
     if not sensors:
         return False
     async_add_entities(sensors)
-
-# def setup_platform(hass, config, add_entities, discovery_info=None):
-#     """Set up the Modbus sensors."""
-#     sensors = []
-#     _LOGGER.info("IEC sensor setup")
-#     _LOGGER.info(config)
-#     add_entities([ExampleSensor()])
-
 
 class IEC_sensor(Entity):
     """Representation of a Sensor."""

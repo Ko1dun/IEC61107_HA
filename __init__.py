@@ -4,6 +4,7 @@ import time
 import voluptuous as vol
 
 import logging
+import threading
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -17,32 +18,38 @@ from .const import DOMAIN
 from homeassistant.const import (
     CONF_NAME,
     CONF_UNIT_OF_MEASUREMENT,
+    EVENT_HOMEASSISTANT_STOP,
 )
 
-CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO List the platforms that you want to support.
-# For your initial PR, limit it to 1 platform.
-
 
 async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up the IEC Power Meter component."""
+    """Set up the IEC Meter component."""
+    _LOGGER.warning("ololo")
     return True
 
 
+hub_list = []
+
+def close_iec():
+    for hub in hub_list:
+        hub.close()
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up IEC Power Meter from a config entry."""
-    """Set up platform from a ConfigEntry."""
+    """Set up IEC Meter from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     hass_data = dict(entry.data)
 
-    _LOGGER.warning("Setup main IEC_METER")
-    _LOGGER.warning(hass_data)
     myhub = IEC_hub(hass_data)
     hass.data[DOMAIN][entry.title] = myhub
+    hub_list.append(myhub)
     myhub.setup()
+
+    # register function to gracefully stop modbus
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, close_iec)
+
     return True
 
 
@@ -56,9 +63,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
     )
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(entry.title)
 
+    for hub in hub_list:
+        if hub.name == entry.title:
+            hub.close()
     return unload_ok
+
+
 
 
 class IEC_hub:
@@ -66,6 +78,7 @@ class IEC_hub:
     
 
     def __init__(self, config):
+        self._lock = threading.Lock()
         self.transport = None
         self.IEC_device = None
 
@@ -114,61 +127,64 @@ class IEC_hub:
     def close(self):
         """Disconnect client."""
         with self._lock:
-            #self._client.close()
             _LOGGER.warning("IEC close")
-
+            if self.IEC_device is not None:
+                self.IEC_device.close()
+            
     def connect(self):
         """Connect client."""
         with self._lock:
-            self.IEC_device = IEC61107(self.transport)
             _LOGGER.warning("IEC connect")
+            self.IEC_device = IEC61107(self.transport)
+            
 
     def update_needed(self):
-        
-        if self.last_readout is None:
-            return True
+        with self._lock:
+            if self.last_readout is None:
+                return True
 
-        curtime = time.time()
-        if (curtime - self.last_readout) > self.poll_perod:
-            return True
-        return False
+            curtime = time.time()
+            if (curtime - self.last_readout) > self.poll_perod:
+                return True
+            return False
 
     def perform_readout(self):
+        with self._lock:
+            _LOGGER.warning("IEC perform readout")
+            #update named parameters
+            for meter in self.named_params:
+                if meter == 0: #use broadcast address (only one device on a bus)
+                    self.IEC_device.init_session()
+                else: #address meter by its ID
+                    self.IEC_device.init_session(meter)
 
-        _LOGGER.warning("IEC perform readout")
-        #update named parameters
-        for meter in self.named_params:
-            if meter == 0: #use broadcast address (only one device on a bus)
-                self.IEC_device.init_session()
-            else: #address meter by its ID
-                self.IEC_device.init_session(meter)
+                for param in self.named_params[meter]: #go through all requested parameter names
+                    values = self.IEC_device.read_param(param)
+                        
+                    for idx, value in enumerate(values): #save requested values
+                        if self.named_params[meter][param].get(idx):
+                            self.named_params[meter][param][idx] = value
 
-            for param in self.named_params[meter]: #go through all requested parameter names
-                values = self.IEC_device.read_param(param)
-                    
-                for idx, value in enumerate(values): #save requested values
-                    if self.named_params[meter][param].get(idx):
-                        self.named_params[meter][param][idx] = value
+                self.IEC_device.end_session()
 
-            self.IEC_device.end_session()
+            #update generic read
+            for meter in self.generic_params:
+                if meter == 0: #use broadcast address (only one device on a bus)
+                    self.IEC_device.init_session()
+                else: #address meter by its ID
+                    self.IEC_device.init_session(meter)
+                
+                generic_data = self.IEC_device.general_read()
 
-        #update generic read
-        for meter in self.generic_params:
-            if meter == 0: #use broadcast address (only one device on a bus)
-                self.IEC_device.init_session()
-            else: #address meter by its ID
-                self.IEC_device.init_session(meter)
-            
-            generic_data = self.IEC_device.general_read()
+                for idx, value in enumerate(generic_data):
+                    if self.generic_params[meter].get(idx):
+                        self.generic_params[meter][idx] = value
 
-            for idx, value in enumerate(generic_data):
-                if self.generic_params[meter].get(idx):
-                    self.generic_params[meter][idx] = value
+                self.IEC_device.end_session()
 
-            self.IEC_device.end_session()
+            self.last_readout = time.time()
 
-        self.last_readout = time.time()
-
+            #self.IEC_device.close()
         return
 
     def read_named(self,id, name, index):

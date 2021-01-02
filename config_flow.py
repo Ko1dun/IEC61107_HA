@@ -76,9 +76,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
                 
             if not errors:
-                _LOGGER.info("Serial accepted")
                 self.data.update(user_input)
-                _LOGGER.info(self.data)
+                _LOGGER.info("Setup finished!")
                 return self.async_create_entry(title = self.data[CONF_NAME], data=self.data)
         return self.async_show_form(
             step_id="serial_trans", data_schema=vol.Schema(data_schema), errors=errors
@@ -104,9 +103,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
                 
             if not errors:
-                _LOGGER.info("Net accepted")
                 self.data.update(user_input)
-                _LOGGER.info(self.data)
+                _LOGGER.info("Setup finished!")
                 return self.async_create_entry(title = self.data[CONF_NAME], data=self.data)
                 
         return self.async_show_form(
