@@ -1,11 +1,11 @@
 """Constants for the IEC Power Meter integration."""
 
-CONF_NAME = "name"
 CONF_PARAMETERS = "parameters"
 
 CONF_HUB = "hub"
 CONF_PARAM = "param"
 CONF_INDEX = "index"
+CONF_ID    = "id"
 
 CONF_TRANSPORT = "transport"
 CONF_HOSTNAME = "hostname"
@@ -19,5 +19,6 @@ CONF_FLOWCTRL = "flowctrl"
 
 CONF_ID = "id"
 CONF_PASSWORD = "password"
+CONF_INTERVAL = "poll_interval"
 
 DOMAIN = "iec_meter"

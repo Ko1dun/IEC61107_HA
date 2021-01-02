@@ -3,7 +3,7 @@
   "name": "IEC Power Meter",
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/iec_meter",
-  "requirements": [],
+  "requirements": ["git+http://git.turmio.pw/Radeon/ce301_client.git@master#IEC61107"],
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},

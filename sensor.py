@@ -9,7 +9,19 @@ from homeassistant import config_entries, core
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 import homeassistant.helpers.config_validation as cv
 
-from .const import CONF_PARAMETERS, CONF_HUB, DOMAIN, CONF_PARAM, CONF_INDEX, CONF_NAME
+from .const import (
+    CONF_PARAMETERS, 
+    CONF_HUB, DOMAIN, 
+    CONF_PARAM, 
+    CONF_INDEX,
+    CONF_ID,
+)
+    
+
+from homeassistant.const import (
+    CONF_NAME,
+    CONF_UNIT_OF_MEASUREMENT,
+)
 
 from homeassistant.helpers.typing import (
     ConfigType,
@@ -26,6 +38,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
             {
                 vol.Required(CONF_NAME): cv.string,
                 vol.Required(CONF_HUB): cv.string,
+                vol.Optional(CONF_ID): cv.string,
+                vol.Optional(CONF_UNIT_OF_MEASUREMENT): cv.string,
                 vol.Optional(CONF_PARAM): cv.string,
                 vol.Optional(CONF_INDEX,default=0): cv.positive_int,
             }
@@ -57,15 +71,23 @@ async def async_setup_platform(
         _LOGGER.warning(parameter)
         _LOGGER.warning(hub.name)
 
-        #create sensor
-        sensor = IEC_sensor(
-            name = parameter[CONF_NAME],
-            unit_of_measurement = "meh",
-            hub = hub,
-            param= parameter.get(CONF_PARAM),
-            index= parameter[CONF_INDEX]
-            )
-        sensors.append(sensor)
+
+        #add parameter to hub request list
+        added = hub.add_named(id = parameter.get(CONF_ID),
+                        name = parameter.get(CONF_PARAM),
+                        index= parameter[CONF_INDEX])
+
+        if added :
+            #create sensor
+            sensor = IEC_sensor(
+                name = parameter[CONF_NAME],
+                unit_of_measurement = parameter.get(CONF_UNIT_OF_MEASUREMENT),
+                hub = hub,
+                id = parameter.get(CONF_ID),
+                param= parameter.get(CONF_PARAM),
+                index= parameter[CONF_INDEX]
+                )
+            sensors.append(sensor)        
 
     if not sensors:
         return False
@@ -82,10 +104,11 @@ async def async_setup_platform(
 class IEC_sensor(Entity):
     """Representation of a Sensor."""
 
-    def __init__(self, name, unit_of_measurement, hub, param,index):
+    def __init__(self, name, unit_of_measurement, hub,id, param,index):
         """Initialize the sensor."""
         self._state = None
         self._hub = hub
+        self._id = id
         self._name = name
         self._param = param
         self._index = index
@@ -111,7 +134,7 @@ class IEC_sensor(Entity):
         This is the only method that should fetch new data for Home Assistant.
         """
         if self._param is not None:
-            value = self._hub.read_named(self._param,self._index)
+            value = self._hub.read_named(self._id, self._param,self._index)
         else:
-            value = self._hub.read_generic(self._index)
+            value = self._hub.read_generic(self._id, self._index)
         self._state = value
