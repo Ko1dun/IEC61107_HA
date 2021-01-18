@@ -105,6 +105,15 @@ class IEC_sensor(Entity):
         return self._name
 
     @property
+    def unique_id(self):
+        """Return the unique_id of the sensor."""
+        if self._id is None:
+            id = 0
+        else:
+            id = self._id
+        return "{}_{}_{}:{}:{}".format(DOMAIN, self._hub.name, id, self._param, self._index)
+
+    @property
     def state(self):
         """Return the state of the sensor."""
         return self._state

@@ -158,12 +158,14 @@ class IEC_hub:
                 else: #address meter by its ID
                     self.IEC_device.init_session(meter)
 
+                self.IEC_device.program_mode()
+
                 for param in self.named_params[meter]: #go through all requested parameter names
                     values = self.IEC_device.read_param(param)
                         
                     for idx, value in enumerate(values): #save requested values
-                        if self.named_params[meter][param].get(idx):
-                            self.named_params[meter][param][idx] = value
+                        #if self.named_params[meter][param].get(idx):
+                        self.named_params[meter][param][idx] = value
 
                 self.IEC_device.end_session()
 
@@ -193,6 +195,9 @@ class IEC_hub:
         if self.update_needed():
             self.perform_readout()
 
+        if id is None:
+            id=0
+
         return self.named_params[id][name][index]
         
 
@@ -200,6 +205,10 @@ class IEC_hub:
         _LOGGER.info("Generic " + str(index))
         if self.update_needed():
             self.perform_readout()
+
+        if id is None:
+            id=0
+
         return self.generic_params[id][index]
 
     def add_named(self,id,name,index):
