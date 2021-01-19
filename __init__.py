@@ -186,7 +186,7 @@ class IEC_hub:
 
             self.last_readout = time.time()
 
-            #self.IEC_device.close()
+            self.IEC_device.close()
         return
 
     def read_named(self,id, name, index):
