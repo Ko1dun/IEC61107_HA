@@ -150,43 +150,49 @@ class IEC_hub:
 
     def perform_readout(self):
         with self._lock:
-            _LOGGER.warning("IEC perform readout")
-            #update named parameters
-            for meter in self.named_params:
-                if meter == 0: #use broadcast address (only one device on a bus)
-                    self.IEC_device.init_session()
-                else: #address meter by its ID
-                    self.IEC_device.init_session(meter)
+            _LOGGER.debug("IEC perform readout")
+            try:
+                #update named parameters
+                for meter in self.named_params:
+                    if meter == 0: #use broadcast address (only one device on a bus)
+                        self.IEC_device.init_session()
+                    else: #address meter by its ID
+                        self.IEC_device.init_session(meter)
 
-                self.IEC_device.program_mode()
+                    self.IEC_device.program_mode()
 
-                for param in self.named_params[meter]: #go through all requested parameter names
-                    values = self.IEC_device.read_param(param)
-                        
-                    for idx, value in enumerate(values): #save requested values
-                        #if self.named_params[meter][param].get(idx):
-                        self.named_params[meter][param][idx] = value
+                    for param in self.named_params[meter]: #go through all requested parameter names
+                        values = self.IEC_device.read_param(param)
+                            
+                        for idx, value in enumerate(values): #save requested values
+                            #if self.named_params[meter][param].get(idx):
+                            self.named_params[meter][param][idx] = value
 
-                self.IEC_device.end_session()
+                    self.IEC_device.end_session()
 
-            #update generic read
-            for meter in self.generic_params:
-                if meter == 0: #use broadcast address (only one device on a bus)
-                    self.IEC_device.init_session()
-                else: #address meter by its ID
-                    self.IEC_device.init_session(meter)
-                
-                generic_data = self.IEC_device.general_read()
+                #update generic read
+                for meter in self.generic_params:
+                    if meter == 0: #use broadcast address (only one device on a bus)
+                        self.IEC_device.init_session()
+                    else: #address meter by its ID
+                        self.IEC_device.init_session(meter)
+                    
+                    generic_data = self.IEC_device.general_read()
 
-                for idx, value in enumerate(generic_data):
-                    if self.generic_params[meter].get(idx):
-                        self.generic_params[meter][idx] = value
+                    for idx, value in enumerate(generic_data):
+                        if self.generic_params[meter].get(idx):
+                            self.generic_params[meter][idx] = value
 
-                self.IEC_device.end_session()
-
-            self.last_readout = time.time()
-
-            self.IEC_device.close()
+                    self.IEC_device.end_session()
+            except Exception as err:
+                _LOGGER.warning("IEC readout failed with exception {0}".format(err))
+                pass
+            else:
+                self.last_readout = time.time()
+                pass
+            finally:
+                self.IEC_device.close()
+                pass 
         return
 
     def read_named(self,id, name, index):
