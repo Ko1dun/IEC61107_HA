@@ -123,6 +123,7 @@ class IEC_hub:
         else:
             assert false
         self.IEC_device = IEC61107(self.transport)
+        self.failed_tries = 0
 
     def close(self):
         """Disconnect client."""
@@ -144,7 +145,8 @@ class IEC_hub:
                 return True
 
             curtime = time.time()
-            if (curtime - self.last_readout) > self.poll_perod:
+            poll_period = self.poll_perod * (2 ** self.failed_tries)
+            if (curtime - self.last_readout) > poll_period:
                 return True
             return False
 
@@ -185,13 +187,18 @@ class IEC_hub:
 
                     self.IEC_device.end_session()
             except Exception as err:
-                _LOGGER.warning("IEC readout failed with exception {0}".format(err))
+                _LOGGER.warning("Readout failed with exception {0}".format(err))
+                if self.failed_tries < 5:
+                    self.failed_tries+=1
+                _LOGGER.debug("Failed {} tries".format(self.failed_tries))
                 pass
             else:
-                self.last_readout = time.time()
+                _LOGGER.debug("Readout successful")
+                self.failed_tries = 0
                 pass
             finally:
                 self.IEC_device.close()
+                self.last_readout = time.time()
                 pass 
         return
 
