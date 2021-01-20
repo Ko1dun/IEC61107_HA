@@ -203,7 +203,7 @@ class IEC_hub:
         return
 
     def read_named(self,id, name, index):
-        _LOGGER.info("Param "+ name + str(index))
+        _LOGGER.debug("Reading Param "+ name + str(index))
 
         if self.update_needed():
             self.perform_readout()
@@ -215,7 +215,7 @@ class IEC_hub:
         
 
     def read_generic(self,id,index):
-        _LOGGER.info("Generic " + str(index))
+        _LOGGER.debug("Reading Generic " + str(index))
         if self.update_needed():
             self.perform_readout()
 
